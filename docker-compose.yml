@@ -2,14 +2,11 @@ version: '3'
 services:
 
   load-generator:
-    build:
-      context: ./load-generator
+    image: alpine/bombardier@sha256:3647592d94c654898d0327ca5080f6d9cf98e3ecdc407c3249ba78e270761a9a
     networks:
       - lbdmesh
-    environment:
-      - TARGET_URL=http://load-balancer:8080/
-      - DELAY_BEFORE_LOAD=90s
-      # - LOG_REQUEST_COUNT=true # If this is uncommented, the load generator will log every 100th request
+    entrypoint: /bin/ash
+    command: -c 'sleep 120 ; bombardier -c 1000 -d 1h http://load-balancer:8080/'
 
   nginx:
     build:
@@ -38,10 +35,8 @@ services:
       # - INSTANA_DEV=1
       - SERVER_PORT=8080
       - SPRING_APPLICATION_NAME=server-app-1
-      - JAVA_TOOL_OPTIONS=-Xmx420M # Override max heap set by the CNB packeto buildpack used to create the Docker image
-      - MEMORY_ALLOCATED_MAXIMUM=300MB # Accepts the org.springframework.util.unit.DataSize#parse format, see https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/unit/DataSize.html
-      - MEMORY_ALLOCATED_PER_REQUEST=200KB # Accepts the org.springframework.util.unit.DataSize#parse format, see https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/unit/DataSize.html
-      - DELAY_BEFORE_MEMORY_DEREFERENCED=PT1M # Accepts the java.time.Duration#parse format, see https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-
+      - MEMORY_ALLOCATED_PER_REQUEST=50KB # Accepts the java.time.Duration#parse format, see https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-
+      - MEMORY_ALLOCATED_MAXIMUM=280MB # Accepts the java.time.Duration#parse format, see https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-
     expose:
       - "8080"
 
@@ -54,11 +49,9 @@ services:
     environment:  
       # - INSTANA_DEV=1
       - SERVER_PORT=8080
-      - SPRING_APPLICATION_NAME=server-app-1
-      - JAVA_TOOL_OPTIONS=-Xmx420M # Override max heap set by the CNB packeto buildpack used to create the Docker image
-      - MEMORY_ALLOCATED_MAXIMUM=200MB # Accepts the org.springframework.util.unit.DataSize#parse format, see https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/unit/DataSize.html
-      - MEMORY_ALLOCATED_PER_REQUEST=200KB # Accepts the org.springframework.util.unit.DataSize#parse format, see https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/unit/DataSize.html
-      - DELAY_BEFORE_MEMORY_DEREFERENCED=PT1M # Accepts the java.time.Duration#parse format, see https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-
+      - SPRING_APPLICATION_NAME=server-app-2
+      - MEMORY_ALLOCATED_PER_REQUEST=5KB # Accepts the java.time.Duration#parse format, see https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-
+      - MEMORY_ALLOCATED_MAXIMUM=280MB # Accepts the java.time.Duration#parse format, see https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-
     expose:
       - "8080"
 

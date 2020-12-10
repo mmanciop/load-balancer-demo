@@ -44,7 +44,7 @@ public class Application {
 		private final AtomicInteger currentObjectsReferenceAllocations = new AtomicInteger();
 
 		Api(
-			@Value("${MEMORY_ALLOCATED_PER_REQUEST:2MB}") final String memoryAllocatedPerRequest,
+			@Value("${MEMORY_ALLOCATED_PER_REQUEST:2KB}") final String memoryAllocatedPerRequest,
 			@Value("${MEMORY_ALLOCATED_MAXIMUM:1GB}") final String memoryAllocatedMaximum,
 			@Value("${DELAY_BEFORE_MEMORY_DEREFERENCED:PT1M}") final String delayBeforeMemoryDereferenced
 		) {
@@ -70,9 +70,9 @@ public class Application {
 			final boolean allocateMoreObjects = objectReferenceAllocationsMax > currentObjectsReferenceAllocations.get();
 
 			if (allocateMoreObjects) {
-				final AtomicReference<Object> ref = new AtomicReference<>(new Object[objectReferencesAllocatedPerRequest]);
 				currentObjectsReferenceAllocations.incrementAndGet();
-	
+				final AtomicReference<Object> ref = new AtomicReference<>(new Object[objectReferencesAllocatedPerRequest]);
+
 				executor.schedule(() -> {
 					ref.set(null);
 					currentObjectsReferenceAllocations.decrementAndGet();
