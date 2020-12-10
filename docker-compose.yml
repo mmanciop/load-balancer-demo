@@ -1,0 +1,90 @@
+version: '3'
+services:
+
+  load-generator:
+    build:
+      context: ./load-generator
+    networks:
+      - lbdmesh
+    environment:
+      - TARGET_URL=http://load-balancer:8080/
+      - DELAY_BEFORE_LOAD=90s
+      # - LOG_REQUEST_COUNT=true # If this is uncommented, the load generator will log every 100th request
+
+  nginx:
+    build:
+      context: ./nginx
+      args:
+        download_key: ${download_key}
+        agent_key: ${agent_key}
+        nginx_version: '1.17.2'
+    networks:
+      lbdmesh:
+        aliases:
+          - load-balancer
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/instana-config.json:/etc/instana-config.json
+    expose:
+      - "8080"
+
+  server-app-1:
+    image: server-app
+    networks:
+      lbdmesh:
+        aliases:
+          - server-app-1
+    environment:  
+      # - INSTANA_DEV=1
+      - SERVER_PORT=8080
+      - SPRING_APPLICATION_NAME=server-app-1
+      - JAVA_TOOL_OPTIONS=-Xmx420M # Override max heap set by the CNB packeto buildpack used to create the Docker image
+      - MEMORY_ALLOCATED_MAXIMUM=300MB # Accepts the org.springframework.util.unit.DataSize#parse format, see https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/unit/DataSize.html
+      - MEMORY_ALLOCATED_PER_REQUEST=200KB # Accepts the org.springframework.util.unit.DataSize#parse format, see https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/unit/DataSize.html
+      - DELAY_BEFORE_MEMORY_DEREFERENCED=PT1M # Accepts the java.time.Duration#parse format, see https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-
+    expose:
+      - "8080"
+
+  server-app-2:
+    image: server-app
+    networks:
+      lbdmesh:
+        aliases:
+          - server-app-2
+    environment:  
+      # - INSTANA_DEV=1
+      - SERVER_PORT=8080
+      - SPRING_APPLICATION_NAME=server-app-1
+      - JAVA_TOOL_OPTIONS=-Xmx420M # Override max heap set by the CNB packeto buildpack used to create the Docker image
+      - MEMORY_ALLOCATED_MAXIMUM=200MB # Accepts the org.springframework.util.unit.DataSize#parse format, see https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/unit/DataSize.html
+      - MEMORY_ALLOCATED_PER_REQUEST=200KB # Accepts the org.springframework.util.unit.DataSize#parse format, see https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/unit/DataSize.html
+      - DELAY_BEFORE_MEMORY_DEREFERENCED=PT1M # Accepts the java.time.Duration#parse format, see https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-
+    expose:
+      - "8080"
+
+  agent:
+    image: containers.instana.io/instana/release/agent/static:latest
+    pid: host
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev:/dev
+      - /sys:/sys
+      - /var/log:/var/log
+      - ./agent/configuration-demo.yaml:/opt/instana/agent/etc/instana/configuration-demo.yaml
+      # - ./agent/com.instana.agent.main.sender.File.cfg:/opt/instana/agent/etc/instana/com.instana.agent.main.sender.File.cfg # Log spans received by the agent to a file in /opt/instana/agent/data/log
+    networks:
+      lbdmesh:
+        aliases:
+          - instana-agent
+    environment:
+      - INSTANA_AGENT_ENDPOINT=${agent_endpoint:-saas-us-west-2.instana.io}
+      - INSTANA_AGENT_ENDPOINT_PORT=${agent_endpoint_port:-443}
+      - INSTANA_DOWNLOAD_KEY=${download_key}
+      - INSTANA_AGENT_KEY=${agent_key}
+      - INSTANA_AGENT_ZONE=${agent_zone:-load-balancer-demo}
+    expose:
+      - "42699"
+
+networks:
+  lbdmesh: {}

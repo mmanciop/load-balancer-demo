@@ -1,0 +1,6 @@
+{
+  "service": "load-balancer",
+  "agent_host": "instana-agent",
+  "agent_port": 42699,
+  "max_buffered_spans": 1000
+}
